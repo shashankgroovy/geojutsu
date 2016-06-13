@@ -35,11 +35,12 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
-    'rest_framework'
+    'rest_framework',
+    'rest_framework_mongoengine'
 ]
 
 LOCAL_APPS = [
-    'provider'
+    'provider.apps.ProviderConfig'
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

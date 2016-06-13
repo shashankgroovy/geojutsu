@@ -4,7 +4,7 @@ from django.db import models
 from mongoengine import *
 
 class Provider(Document):
-    name = StringField(max_length=80)
+    name = StringField(max_length=80, required=True)
     email = EmailField(max_length=80)
     phone = IntField(max_length=13)
     language = StringField(max_length=20)
