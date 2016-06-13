@@ -1,4 +1,4 @@
-from rest_framework import generics as drf_generics
+from rest_framework import generics
 from rest_framework_mongoengine import generics as drfme_generics
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -15,7 +15,7 @@ from provider.serializers import ProviderSerializer, GeoJsonPolygonSerializer, \
 def index(request, format=None):
     return Response({
         'Providers': reverse('provider-list', request=request, format=format),
-        'ServiceAreas': reverse('servicearea-list', request=request, format=format)
+        'ServiceAreas': reverse('serviceareasfeaturecollection-list', request=request, format=format)
     })
 
 
@@ -37,13 +37,13 @@ class ProviderList(drfme_generics.ListCreateAPIView):
         return self.create(request, *args, **kwargs)
 
 
-class ProviderDetail(drfme_generics.GenericAPIView):
+class ProviderDetail(drfme_generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieve, update or delete a specific provider instance.
     """
-
-    queryset = Provider.objects.all()
+    queryset = Provider.objects()
     serializer_class = ProviderSerializer
+
 
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)

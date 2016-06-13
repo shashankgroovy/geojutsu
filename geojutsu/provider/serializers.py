@@ -9,11 +9,13 @@ from rest_framework_mongoengine.serializers import DocumentSerializer, \
 from provider.models import Provider, ServiceAreasFeatureCollection, \
         GeoJsonPolygonFeature
 
+from mongoengine import *
 
 class ProviderSerializer(DocumentSerializer):
     """Declaring a provider serializer that works very similar to Django's native
     form"""
 
+    pk = IntField(unique=True)
     class Meta:
         model = Provider
         depth = 2
@@ -23,6 +25,7 @@ class ProviderSerializer(DocumentSerializer):
         Create and return a new `Provider` instance, given the validated data.
         """
         return Provider.objects.create(**validated_data)
+
 
 
     def update(self, instance, validated_data):
@@ -39,19 +42,12 @@ class ProviderSerializer(DocumentSerializer):
         return instance
 
 
-class PolygonFeatureSerializer(EmbeddedDocumentSerializer):
+class GeoJsonPolygonSerializer(EmbeddedDocumentSerializer):
     """Declaring a geojson polygon serializer."""
 
     class Meta:
         model = GeoJsonPolygonFeature
-
-
-    def create(self, validated_data):
-        """
-        Create and return a new GeoJsonPolygonFeature instance, given the
-        validated data.
-        """
-        return Provider.objects.create(**validated_data)
+        depth = 2
 
 
     def update(self, instance, validated_data):
@@ -69,14 +65,25 @@ class PolygonFeatureSerializer(EmbeddedDocumentSerializer):
 class ServiceAreasSerializer(DocumentSerializer):
     """Declaring a Feature collection serializer for geojson polygons."""
 
-    features = PolygonFeatureSerializer(many=True)
+    provider = ReferenceField(Provider)
+    features = GeoJsonPolygonSerializer(many=True)
 
     class Meta:
         model = ServiceAreasFeatureCollection
         depth = 2
 
     def create(self, validated_data):
-        pass
+        """Create and add GeoJson Polygon features to Service Area feature
+        collection of provider"""
+        features = validated_data.pop('features')
+        featureCollection = ServiceAreasFeatureCollection.objects.create(**validated_data)
+        featureCollection.features = []
+
+        for feature in features:
+            featureCollection.features.append(feature)
+        featureCollection.save()
+
+        return featureCollection
 
     def update(self, instance, validated_data):
         features = validated_data.pop('features')
