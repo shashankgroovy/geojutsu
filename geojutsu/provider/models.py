@@ -14,23 +14,13 @@ class Provider(Document):
     currency = StringField(max_length=5)
 
 
-class GeoJsonPolygonFeature(EmbeddedDocument):
+class GeoJsonPolygon(Document):
     """
-    A GeoJsonPolygonFeature is an individual service area of a provider and
+    A GeoJsonPolygon is an individual service area of a provider and
     takes 2 properties: name and price
 
     """
     type = StringField(default="Feature")
     geometry = PolygonField()
     properties = DictField()
-
-
-class ServiceAreasFeatureCollection(Document):
-    """
-    A service area is a feature collection of individual features which are
-    geojson polygons, and has a reference to the provider
-    """
-    provider = ReferenceField(Provider, required=True,
-                              reverse_delete_rule=CASCADE)
-    type = StringField(default="FeatureCollection")
-    features = ListField(EmbeddedDocumentField(GeoJsonPolygonFeature))
+    provider = ReferenceField(Provider)

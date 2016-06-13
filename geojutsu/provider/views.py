@@ -4,10 +4,10 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
-from provider.models import Provider, GeoJsonPolygonFeature, \
-        ServiceAreasFeatureCollection
-from provider.serializers import ProviderSerializer, GeoJsonPolygonSerializer, \
-        ServiceAreasSerializer
+import mongoengine
+
+from provider.models import Provider, GeoJsonPolygon
+from provider.serializers import ProviderSerializer, GeoJsonPolygonSerializer
 
 
 
@@ -15,12 +15,12 @@ from provider.serializers import ProviderSerializer, GeoJsonPolygonSerializer, \
 def index(request, format=None):
     return Response({
         'Providers': reverse('provider-list', request=request, format=format),
-        'ServiceAreas': reverse('serviceareasfeaturecollection-list', request=request, format=format)
+        'ServiceAreas': reverse('geojsonpolygon-list', request=request, format=format)
     })
 
 
 
-class ProviderList(drfme_generics.ListCreateAPIView):
+class ProviderList(generics.ListCreateAPIView):
     """
     Lists all providers or creates a new provider.
     """
@@ -37,7 +37,7 @@ class ProviderList(drfme_generics.ListCreateAPIView):
         return self.create(request, *args, **kwargs)
 
 
-class ProviderDetail(drfme_generics.RetrieveUpdateDestroyAPIView):
+class ProviderDetail(generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieve, update or delete a specific provider instance.
     """
@@ -56,32 +56,32 @@ class ProviderDetail(drfme_generics.RetrieveUpdateDestroyAPIView):
 
 
 
-class ServiceAreasList(drfme_generics.ListCreateAPIView):
-    """ Display list of all GeoJsonPolygonFeature features or creates a new
-    feature collection of GeoJson Polygons.
+class GeoJsonPolygonList(generics.ListCreateAPIView):
+    """ Display list of all GeoJsonPolygon features or creates a new
+    instance of GeoJsonPolygon.
     """
 
-    queryset = ServiceAreasFeatureCollection.objects.all()
-    serializer_class = ServiceAreasSerializer
+    queryset = GeoJsonPolygon.objects.all()
+    serializer_class = GeoJsonPolygonSerializer
 
     def get(self, request, *args, **kwargs):
-        """Return a list of all feature collections when request method is
+        """Return a list of all feature of type GeoJsonPolygon when request method is
         GET."""
         return self.list(request, *args, **kwargs)
 
 
     def post(self, request, *args, **kwargs):
-        """Create new FeatureCollection of service areas"""
+        """Create new Feature of type GeoJsonPolygon"""
         return self.create(request, *args, **kwargs)
 
 
-class ServiceAreaDetail(drfme_generics.GenericAPIView):
+class GeoJsonPolygonDetail(generics.RetrieveUpdateDestroyAPIView):
     """
-    Retrieve, update or delete a specific FeatureCollection instance.
+    Retrieve, update or delete a specific provider instance.
     """
+    queryset = GeoJsonPolygon.objects()
+    serializer_class = GeoJsonPolygonSerializer
 
-    queryset = ServiceAreasFeatureCollection.objects.all()
-    serializer_class = ServiceAreasSerializer
 
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
@@ -93,20 +93,15 @@ class ServiceAreaDetail(drfme_generics.GenericAPIView):
         return self.destroy(request, *args, **kwargs)
 
 
+@api_view(['GET'])
+def findServiceArea(request, x, y, format=None):
+    point = mongoengine.PointField([x,y])
 
-class GeoJsonPolygonDetail(drfme_generics.RetrieveUpdateDestroyAPIView):
-    """
-    Retrieve, update or delete a specific GeoJsonPolygon instance.
-    """
+    for loc in GeoJsonPolygon.objects.all():
 
-    queryset = ServiceAreasFeatureCollection.objects.all()
-    serializer_class = ServiceAreasSerializer
+        locations = loc.objects(point__geo_within=loc.geometry)
 
-    def get(self, request, *args, **kwargs):
-        return self.retrieve(request, *args, **kwargs)
+    return Response({
+        "locations": locations
+    })
 
-    def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
-
-    def delete(self, request, *args, **kwargs):
-        return self.delete(request, *args, **kwargs)

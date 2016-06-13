@@ -1,13 +1,12 @@
 """
-Our RESTful APi needs to provide the `Providers` and `ServiceAreas` as json
+Our RESTful APi needs to provide the `Providers` and `GeoJsonPolygon` as json
 representations. Thus we need to provide a way of serializing and deserializing
 the specific instances.
 """
 
-from rest_framework_mongoengine.serializers import DocumentSerializer, \
-        EmbeddedDocumentSerializer
-from provider.models import Provider, ServiceAreasFeatureCollection, \
-        GeoJsonPolygonFeature
+from rest_framework_mongoengine.serializers import DocumentSerializer
+from provider.models import Provider, GeoJsonPolygon
+
 
 from mongoengine import *
 
@@ -15,18 +14,18 @@ class ProviderSerializer(DocumentSerializer):
     """Declaring a provider serializer that works very similar to Django's native
     form"""
 
-    pk = IntField(unique=True)
     class Meta:
         model = Provider
         depth = 2
+        fields = ('id','name','email','phone','language','currency')
+
 
     def create(self, validated_data):
         """
-        Create and return a new `Provider` instance, given the validated data.
+        Create and return a new `GeoJsonPolygon` instance, given the validated
+        data.
         """
         return Provider.objects.create(**validated_data)
-
-
 
     def update(self, instance, validated_data):
         """
@@ -42,55 +41,31 @@ class ProviderSerializer(DocumentSerializer):
         return instance
 
 
-class GeoJsonPolygonSerializer(EmbeddedDocumentSerializer):
+class GeoJsonPolygonSerializer(DocumentSerializer):
     """Declaring a geojson polygon serializer."""
 
+    provider = ReferenceField(Provider)
     class Meta:
-        model = GeoJsonPolygonFeature
+        model = GeoJsonPolygon
         depth = 2
+
+
+    def create(self, validated_data):
+        """
+        Create and return a new `GeoJsonPolygon` instance, given the validated
+        data.
+        """
+        return GeoJsonPolygon.objects.create(**validated_data)
 
 
     def update(self, instance, validated_data):
         """
-        Update and return an existing `GeoJsonPolygonFeature` instance, given
+        Update and return an existing `GeoJsonPolygon instance, given
         the validated data.
         """
         instance.type = validated_data.get('type', instance.type)
         instance.geometry = validated_data.get('geometry', instance.geometry)
         instance.properties = validated_data.get('properties', instance.properties)
+        instance.provider = validated_data.get('provider', instance.provider)
         instance.save()
         return instance
-
-
-class ServiceAreasSerializer(DocumentSerializer):
-    """Declaring a Feature collection serializer for geojson polygons."""
-
-    provider = ReferenceField(Provider)
-    features = GeoJsonPolygonSerializer(many=True)
-
-    class Meta:
-        model = ServiceAreasFeatureCollection
-        depth = 2
-
-    def create(self, validated_data):
-        """Create and add GeoJson Polygon features to Service Area feature
-        collection of provider"""
-        features = validated_data.pop('features')
-        featureCollection = ServiceAreasFeatureCollection.objects.create(**validated_data)
-        featureCollection.features = []
-
-        for feature in features:
-            featureCollection.features.append(feature)
-        featureCollection.save()
-
-        return featureCollection
-
-    def update(self, instance, validated_data):
-        features = validated_data.pop('features')
-        updated_instance = super(ServiceAreasSerializer, self).update(instance, validated_data)
-
-        for feature in features:
-            updated_instance.features.append(GeoJsonPolygonFeature(**feature))
-
-        updated_instance.save()
-        return updated_instance
