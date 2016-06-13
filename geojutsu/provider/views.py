@@ -33,13 +33,13 @@ def provider_list(request, format=None):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
-def provider_detail(request, name, format=None):
+def provider_detail(request, id, format=None):
     """
     Retrieve, update or delete a specific provider instance.
     """
     try:
-        # Filter provider by name
-        provider = Provider.objects.get(name=name)
+        # Filter provider by id
+        provider = Provider.objects.get(id=id)
     except Provider.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
