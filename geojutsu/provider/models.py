@@ -7,6 +7,7 @@ class Provider(Document):
     """
     The db model for provider.
     """
+    id = ObjectIdField(unique=True,primary_key=True)
     name = StringField(max_length=80, required=True)
     email = EmailField(max_length=80)
     phone = IntField(max_length=13)
@@ -30,6 +31,6 @@ class ServiceAreasFeatureCollection(Document):
     A service area is a feature collection of individual features which are
     geojson polygons, and has a reference to the provider
     """
-    provider = ReferenceField(Provider)
+    provider = ReferenceField(Provider, required=True)
     type = StringField(default="FeatureCollection")
     features = ListField(EmbeddedDocumentField(GeoJsonPolygonFeature))

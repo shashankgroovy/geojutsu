@@ -1,60 +1,112 @@
-from rest_framework import status
+from rest_framework import generics as drf_generics
+from rest_framework_mongoengine import generics as drfme_generics
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.reverse import reverse
 
-from provider.models import Provider
-from provider.serializers import ProviderSerializer
+from provider.models import Provider, GeoJsonPolygonFeature, \
+        ServiceAreasFeatureCollection
+from provider.serializers import ProviderSerializer, GeoJsonPolygonSerializer, \
+        ServiceAreasSerializer
 
-# wrapping our api with function based API views.
-# therefore we use the `@api_view` decorator on our independent functions.
 
-@api_view(['GET', 'POST'])
-def provider_list(request, format=None):
+
+@api_view(['GET'])
+def index(request, format=None):
+    return Response({
+        'Providers': reverse('provider-list', request=request, format=format),
+        'ServiceAreas': reverse('servicearea-list', request=request, format=format)
+    })
+
+
+
+class ProviderList(drfme_generics.ListCreateAPIView):
     """
-    List all providers or create a new provider.
+    Lists all providers or creates a new provider.
     """
-    if request.method == 'GET':
-        # return a list of all providers when request method is 'GET'.
-        providers = Provider.objects.all()
-        serializer = ProviderSerializer(providers, many=True)
-        return Response(serializer.data)
 
-    elif request.method == 'POST':
+    queryset = Provider.objects.all()
+    serializer_class = ProviderSerializer
 
-        # Here instead of using Request object's `request.POST` attribute, we
-        # use `request.data` which can handle more arbitary data and works for
-        # 'POST', 'PUT' and 'PATCH' methods.
-
-        serializer = ProviderSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request, *args, **kwargs):
+        """Return a list of all providers when request method is 'GET'."""
+        return self.list(request, *args, **kwargs)
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
-def provider_detail(request, id, format=None):
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+
+class ProviderDetail(drfme_generics.GenericAPIView):
     """
     Retrieve, update or delete a specific provider instance.
     """
-    try:
-        # Filter provider by id
-        provider = Provider.objects.get(id=id)
-    except Provider.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    queryset = Provider.objects.all()
+    serializer_class = ProviderSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
 
 
-    if request.method == 'GET':
-        serializer = ProviderSerializer(provider)
-        return Response(serializer.data)
 
-    elif request.method == 'PUT':
-        serializer = ProviderSerializer(provider, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class ServiceAreasList(drfme_generics.ListCreateAPIView):
+    """ Display list of all GeoJsonPolygonFeature features or creates a new
+    feature collection of GeoJson Polygons.
+    """
 
-    elif request.method == 'DELETE':
-        provider.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    queryset = ServiceAreasFeatureCollection.objects.all()
+    serializer_class = ServiceAreasSerializer
+
+    def get(self, request, *args, **kwargs):
+        """Return a list of all feature collections when request method is
+        GET."""
+        return self.list(request, *args, **kwargs)
+
+
+    def post(self, request, *args, **kwargs):
+        """Create new FeatureCollection of service areas"""
+        return self.create(request, *args, **kwargs)
+
+
+class ServiceAreaDetail(drfme_generics.GenericAPIView):
+    """
+    Retrieve, update or delete a specific FeatureCollection instance.
+    """
+
+    queryset = ServiceAreasFeatureCollection.objects.all()
+    serializer_class = ServiceAreasSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
+
+
+
+class GeoJsonPolygonDetail(drfme_generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update or delete a specific GeoJsonPolygon instance.
+    """
+
+    queryset = ServiceAreasFeatureCollection.objects.all()
+    serializer_class = ServiceAreasSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        return self.delete(request, *args, **kwargs)
